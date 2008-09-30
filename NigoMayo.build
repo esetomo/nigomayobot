@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<project name="NigoMayo" 
+	 default="build" 
+	 xmlns="http://nant.sf.net/0.85/nant.xsd">
+  <property name="libsecondlife.dir" value="../libsecondlife" />
+
+  <target name="build">
+    <mkdir dir="bin" unless="${directory::exists('bin')}" />
+    <csc target="exe" 
+	 output="bin/NigoMayo.exe"
+	 langversion="linq">
+      <sources>
+	<include name="**/*.cs" />
+      </sources>
+      <references basedir="${libsecondlife.dir}">
+	<include name="libsecondlife.dll" />
+	<include name="System.Core.dll" />
+      </references>
+    </csc>
+  </target>
+</project>

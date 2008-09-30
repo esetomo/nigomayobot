@@ -180,7 +180,7 @@ public class SixamoCS
                 }
                 else
                 {
-                    backup[item.Key] = table[item.Key].ToList();
+                    backup[item.Key] = table[item.Key].ToArray();
                 }
             }
 
@@ -911,7 +911,7 @@ public class SixamoCS
                 }
             }
 
-            if (result.Count() == 0 && width)
+            if (result.Count == 0 && width)
                 return new[] { new KeyValuePair<string, int>(str.ToLower(), num) };
 
             return result;
@@ -1105,7 +1105,7 @@ public class SixamoCS
             foreach (var item in Enumerable.Reverse(ary))
             {
                 item.Key.Remove(item.Value);
-                if (item.Key.Count() > 0)
+                if (item.Key.Count > 0)
                     break;
             }
 
