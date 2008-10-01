@@ -44,7 +44,7 @@ namespace NigoMayo
 
         void m_timer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if(SixamoUtil.RandomDouble() < 0.1)
+            if(SixamoCS.Rand() < 0.1)
                 Talk();
 
             if (Network.CurrentSim == null)
@@ -153,7 +153,7 @@ namespace NigoMayo
 
                         m_sixamo.Memorize(message);
 
-                        if (SixamoUtil.RandomDouble() > 1.0 / Math.Pow(Network.CurrentSim.ObjectsAvatars.Count - 1, 1.5))
+                        if (SixamoCS.Rand() > 1.0 / Math.Pow(Network.CurrentSim.ObjectsAvatars.Count - 1, 1.5))
                             break;
 
                         Talk();

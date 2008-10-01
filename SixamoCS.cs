@@ -5,6 +5,7 @@
 //   * 文字コードをUTF-8にしました。
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -30,16 +31,16 @@ public class SixamoCS
 
     public static class Util
     {
-        public static string RouletteSelect(Dictionary<string, double> h)
+        public static string RouletteSelect(Hash<string, double> h)
         {
-            if (h.Count == 0)
+            if (h.IsEmpty())
                 return null;
 
-            double sum = h.Values.Sum();
+            var sum = h.Values.Sum();
             if (sum == 0.0)
                 return RandomSelect(h.Keys);
 
-            double r = SixamoUtil.RandomDouble() * sum;
+            var r = Rand() * sum;
             foreach (KeyValuePair<string, double> item in h)
             {
                 r -= item.Value;
@@ -49,29 +50,28 @@ public class SixamoCS
             return RandomSelect(h.Keys);
         }
 
-        public static string RandomSelect(ICollection<string> ary)
+        public static string RandomSelect(ReadOnlyCollection<string> ary)
         {
-            return ary.ElementAt(SixamoUtil.Random(ary.Count));
+            return ary[Rand(ary.Count)];
         }
 
         public static string MessageNormalize(string str)
         {
-            Dictionary<char, char[]> paren_h = new Dictionary<char, char[]>();
+            Hash<string, List<string>> paren_h = new Hash<string, List<string>>(() => null);
 
-            foreach (string paren in new string[] { "「」", "『』", "()", "（）" })
+            (new string[] { "「」", "『』", "()", "（）" }).Each((paren) =>
             {
-                foreach (char ch in paren)
-                {
-                    paren_h[ch] = paren.ToCharArray();
-                }
-            }
+                paren.Scan(".", (ch) => {
+                    paren_h[ch] = paren.Scan(".");
+                });
+            });
 
-            Regex re = new Regex("/「」『』()（）]");
-            MatchCollection ary = re.Matches(str);
+            var re = @"[「」『』()（）]";
+            var ary = str.Scan(re);
 
             int cnt = 0;
             string paren2 = "";
-            string str2 = re.Replace(str, (m) =>
+            string str2 = str.Gsub(re, (ch) =>
             {
                 string res;
                 if (cnt == ary.Count - 1 && ary.Count % 2 == 1)
@@ -80,8 +80,8 @@ public class SixamoCS
                 }
                 else if (cnt % 2 == 0)
                 {
-                    paren2 = paren_h[m.Value[0]][1].ToString();
-                    res = paren_h[m.Value[0]][0].ToString();
+                    paren2 = paren_h[ch][1];
+                    res = paren_h[ch][0];
                 }
                 else
                 {
@@ -91,15 +91,15 @@ public class SixamoCS
                 return res;
             });
 
-            str2 = Regex.Replace(str2, "「」", "");
-            str2 = Regex.Replace(str2, "（）", "");
-            str2 = Regex.Replace(str2, "『』", "");
-            str2 = Regex.Replace(str2, "\\(\\)", "");
+            str2 = str2.Gsub(@"「」", "");
+            str2 = str2.Gsub(@"（）", "");
+            str2 = str2.Gsub(@"『』", "");
+            str2 = str2.Gsub(@"\(\)", "");
 
             return str2;
         }
 
-        public static string Markov(IEnumerable<string> src, Dictionary<string, double> keywords, Trie trie)
+        public static string Markov(IEnumerable<string> src, Hash<string, double> keywords, Trie trie)
         {
             var mar = MarkovGenerate(src, trie);
             string result = MarkovSelect(mar, keywords);
@@ -160,7 +160,7 @@ public class SixamoCS
             var size = ary.Count();
             ary = ary.Concat(ary.Take(MARKOV_KEY_SIZE + 1));
 
-            var table = new Dictionary<MarkovKey, List<string>>();
+            var table = new Hash<MarkovKey, List<string>>(() => new List<string>());
             for (int idx = 0; idx < size; idx++)
             {
                 var key = new MarkovKey(ary.Skip(idx).Take(MARKOV_KEY_SIZE));
@@ -169,8 +169,8 @@ public class SixamoCS
                 table[key].Add(ary.ElementAt(idx + MARKOV_KEY_SIZE));
             }
 
-            var uniq = new Dictionary<MarkovKey, string>();
-            var backup = new Dictionary<MarkovKey, IEnumerable<string>>();
+            var uniq = new Hash<MarkovKey, string>(() => "");
+            var backup = new Hash<MarkovKey, IEnumerable<string>>(() => new List<string>());
 
             foreach (var item in table)
             {
@@ -200,7 +200,7 @@ public class SixamoCS
                     if (table[key2].Count == 0)
                         table[key2].AddRange(backup[key2]);
 
-                    var idx = SixamoUtil.Random(table[key2].Count);
+                    var idx = Rand(table[key2].Count);
                     str = table[key2][idx];
 
                     table[key2].RemoveAt(idx);
@@ -238,7 +238,7 @@ public class SixamoCS
             return result;
         }
 
-        public static string MarkovSelect(string result, Dictionary<string, double> keywords)
+        public static string MarkovSelect(string result, Hash<string, double> keywords)
         {
             var tmp = result.Split('\n');
             if (tmp == null || tmp.Length == 0)
@@ -248,7 +248,7 @@ public class SixamoCS
                                 .Distinct()
                                 .Where((a) => !(a.Length == 0 || Regex.IsMatch(a, "\0")));
 
-            var result_hash = new Dictionary<string, double>();
+            var result_hash = new Hash<string, double>(() => 0.0);
             var trie = new Trie(keywords.Keys);
             foreach (var str in result_ary)
             {
@@ -290,12 +290,12 @@ public class SixamoCS
 
         public string Talk(string str)
         {
-            return Talk(str, new Dictionary<string, double>());
+            return Talk(str, new Hash<string, double>(() => 0.0));
         }
 
-        public string Talk(string str, Dictionary<string, double> weight)
+        public string Talk(string str, Hash<string, double> weight)
         {
-            Dictionary<string, double> keywords;
+            Hash<string, double> keywords;
 
             if (str != null && str != "")
             {
@@ -313,11 +313,11 @@ public class SixamoCS
                 {
                     latest_text = text.Skip(text.Count - 10);
                 }
-                keywords = new Dictionary<string, double>();
+                keywords = new Hash<string, double>(() => 0.0);
                 foreach (string str2 in latest_text)
                 {
-                    keywords = keywords.Select((i) => new KeyValuePair<string, double>(i.Key, i.Value * 0.5))
-                                       .ToDictionary((i) => i.Key, (i) => i.Value);
+                    foreach (var item in keywords)
+                        keywords[item.Key] *= 0.5;
 
                     foreach (var item in m_dic.SplitIntoKeywords(str2))
                     {
@@ -377,7 +377,7 @@ public class SixamoCS
                 m_dic.SaveDictionary();
         }
 
-        public string MessageMarkov(Dictionary<string, double> keywords)
+        public string MessageMarkov(Hash<string, double> keywords)
         {
             var lines = new List<int>();
             if (keywords.Count > 0)
@@ -391,12 +391,12 @@ public class SixamoCS
                 }
                 double sum = keywords.Values.Sum();
                 if (sum > 0.0)
-                    keywords = keywords.Select((i) => new KeyValuePair<string, double>(i.Key, i.Value / sum))
-                                       .ToDictionary((i) => i.Key, (i) => i.Value);
+                    foreach (var item in keywords)
+                        keywords[item.Key] = item.Value / sum;
 
                 foreach (string kw in keywords.Keys)
                 {
-                    foreach (int idx in m_dic.Lines(kw).OrderBy((_) => SixamoUtil.RandomDouble()).Take(10))
+                    foreach (int idx in m_dic.Lines(kw).OrderBy((_) => Rand()).Take(10))
                     {
                         lines.Add(idx);
                     }
@@ -404,12 +404,12 @@ public class SixamoCS
             }
 
             for (int i = 0; i < 10; i++)
-                lines.Add(SixamoUtil.Random(m_dic.Text.Count));
+                lines.Add(Rand(m_dic.Text.Count));
             var lines2 = lines.Distinct();
 
             IEnumerable<string> source =
                 lines2.Select((k) => m_dic.Text.Skip(k).Take(5)) // collect
-                      .OrderBy((_) => SixamoUtil.RandomDouble())      // sort_by
+                      .OrderBy((_) => Rand())      // sort_by
                       .SelectMany((i) => i)                          // flatten
                       .Where((str) => str != null)                   // compact
                       .Distinct();                                   // uniq
@@ -448,7 +448,7 @@ public class SixamoCS
             }
         }
 
-        private Dictionary<string, Term> m_term;
+        private Hash<string, Term> m_term;
         private Trie m_trie;
         private string m_dirname;
         private string m_text_filename;
@@ -467,7 +467,7 @@ public class SixamoCS
         public const int LTL = 3;
         public Dictionary(string dirname)
         {
-            m_term = new Dictionary<string, Term>();
+            m_term = new Hash<string, Term>(() => new Term());
             m_trie = new Trie();
 
             m_dirname = dirname;
@@ -534,7 +534,7 @@ public class SixamoCS
 
         public void SaveText()
         {
-            var tmp_filename = string.Format("{0}/sixamo.tmp.{1}-{2}", m_dirname, Process.GetCurrentProcess().Id, SixamoUtil.Random(100));
+            var tmp_filename = string.Format("{0}/sixamo.tmp.{1}-{2}", m_dirname, Process.GetCurrentProcess().Id, Rand(100));
 
             using (var writer = new StreamWriter(tmp_filename, false, Encoding.UTF8))
             {
@@ -548,7 +548,7 @@ public class SixamoCS
 
         public void SaveDictionary()
         {
-            var tmp_filename = string.Format("{0}/sixamo.tmp.{1}-{2}", m_dirname, Process.GetCurrentProcess().Id, SixamoUtil.Random(100));
+            var tmp_filename = string.Format("{0}/sixamo.tmp.{1}-{2}", m_dirname, Process.GetCurrentProcess().Id, Rand(100));
 
             using (var writer = new StreamWriter(tmp_filename, false, Encoding.UTF8))
             {
@@ -694,9 +694,9 @@ public class SixamoCS
             }
         }
 
-        public Dictionary<string, double> SplitIntoKeywords(string str)
+        public Hash<string, double> SplitIntoKeywords(string str)
         {
-            var result = new Dictionary<string, double>();
+            var result = new Hash<string, double>(() => 0.0);
             var terms = SplitIntoTerms(str);
 
             foreach (var w in terms)
@@ -727,7 +727,7 @@ public class SixamoCS
             result.Append(m_line_num);
             result.Append("\n\n");
 
-            m_term = m_term.Where((i) => i.Value.Occur.Count > 0).ToDictionary((i) => i.Key, (i) => i.Value);
+            m_term.DeleteIf((i) => i.Value.Occur.Count == 0);
             foreach (var i in m_term)
                 if (i.Value.Occur.Count > 100)
                     m_term[i.Key].Occur = i.Value.Occur.Skip(i.Value.Occur.Count - 100).ToList();
@@ -802,11 +802,8 @@ public class SixamoCS
 
         public IEnumerable<int> Lines(string word)
         {
-            Term result;
-
-            if (m_term.TryGetValue(word, out result))
-                return result.Occur;
-
+            if (m_term.ContainsKey(word))
+                return m_term[word].Occur;
             return new List<int>();
         }
 
@@ -917,9 +914,9 @@ public class SixamoCS
             return result;
         }
 
-        public SortedDictionary<string, int> DoFreq(string str)
+        public Hash<string, int> DoFreq(string str)
         {
-            var freq = new SortedDictionary<string, int>();
+            var freq = new Hash<string, int>(() => 0);
 
             if (str.Length == 0)
             {
@@ -939,22 +936,14 @@ public class SixamoCS
                     {
                         key = match.Groups[3].Value;
                     }
-                    if (freq.ContainsKey(key))
-                        freq[key] += 1;
-                    else
-                        freq[key] = 1;
+                    freq[key] += 1;
                 }
             }
             else
             {
                 Regex regexp = new Regex(Regex.Escape(str) + @"[^\0]?", RegexOptions.IgnoreCase);
                 foreach (Match match in regexp.Matches(m_buf))
-                {
-                    if (freq.ContainsKey(match.Value))
-                        freq[match.Value] += 1;
-                    else
-                        freq[match.Value] = 1;
-                }
+                    freq[match.Value] += 1;
             }
 
             return freq;
@@ -963,8 +952,12 @@ public class SixamoCS
 
     public class Trie
     {
-        class Node : Dictionary<string, Node>
+        class Node : Hash<string, Node>
         {
+            public Node()
+                : base(() => new Node())
+            {
+            }
         }
 
         private Node m_root;
@@ -1112,24 +1105,151 @@ public class SixamoCS
             return true;
         }
     }
+
+    public class Hash<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
+    {
+        private readonly Dictionary<TKey, TValue> m_data = new Dictionary<TKey, TValue>();
+        private Func<TValue> m_create;
+
+        public Hash(Func<TValue> create)
+        {
+            m_create = create;
+        }
+
+        public bool IsEmpty()
+        {
+            return m_data.Count == 0;
+        }
+
+        public ReadOnlyCollection<TKey> Keys
+        {
+            get
+            {
+                List<TKey> list = new List<TKey>();
+                foreach (var key in m_data.Keys)
+                    list.Add(key);
+                return list.AsReadOnly();
+            }
+        }
+
+        public ReadOnlyCollection<TValue> Values
+        {
+            get
+            {
+                List<TValue> list = new List<TValue>();
+                foreach (var val in m_data.Values)
+                    list.Add(val);
+                return list.AsReadOnly();
+            }
+        }
+
+        public TValue this[TKey key]
+        {
+            get
+            {
+                if (m_data.ContainsKey(key))
+                    return m_data[key];
+                return m_create();
+            }
+            set
+            {
+                m_data[key] = value;
+            }
+        }
+
+        public int Count
+        {
+            get
+            {
+                return m_data.Count;
+            }
+        }
+
+        public void Remove(TKey key)
+        {
+            m_data.Remove(key);
+        }
+
+        public bool ContainsKey(TKey key)
+        {
+            return m_data.ContainsKey(key);
+        }
+
+        public void DeleteIf(Predicate<KeyValuePair<TKey, TValue>> cond)
+        {
+            foreach (var item in this)
+                if (cond(item))
+                    Remove(item.Key);
+        }
+
+        #region IEnumerable<KeyValuePair<TKey,TValue>> メンバ
+
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            List<KeyValuePair<TKey, TValue>> list = new List<KeyValuePair<TKey, TValue>>();
+            foreach (var item in m_data)
+                list.Add(item);
+            return list.GetEnumerator();
+        }
+
+        #endregion
+
+        #region IEnumerable メンバ
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+    }
+
+    private static Random m_rand = new Random();
+
+    public static double Rand()
+    {
+        return m_rand.NextDouble();
+    }
+
+    public static int Rand(int maxValue)
+    {
+        return m_rand.Next(maxValue);
+    }
 }
 
-public static class SixamoUtil
+public static class SixamoExtends
 {
     public static string Reverse(this string str)
     {
         return new string(Enumerable.Reverse(str).ToArray());
     }
 
-    private static Random m_rand = new Random();
-
-    public static double RandomDouble()
+    public static void Each<T>(this IEnumerable<T> enumerable, Action<T> action)
     {
-        return m_rand.NextDouble();
+        foreach (var item in enumerable)
+            action(item);
     }
 
-    public static int Random(int maxValue)
+    public static List<string> Scan(this string str, string re)
     {
-        return m_rand.Next(maxValue);
+        List<string> result = new List<string>();
+        str.Scan(re, (m) => result.Add(m));
+        return result;
+    }
+
+    public static void Scan(this string str, string re, Action<string> action)
+    {
+        foreach (Match match in Regex.Matches(str, re))
+            action(match.Value);
+    }
+
+    public static string Gsub(this string str, string re, Func<string, string> func)
+    {
+        return Regex.Replace(str, re, (m) => func(m.Value));
+    }
+
+    public static string Gsub(this string str, string re, string replace)
+    {
+        return Regex.Replace(str, re, replace);
     }
 }
