@@ -699,7 +699,7 @@ public class SixamoCS
                     m_term[i.Key].Occur = i.Value.Occur.Skip(i.Value.Occur.Count - 100).ToList();
             });
 
-            var tmp = m_term.Keys.SortBy((k) => new object[]{-m_term[k].Occur.Count, m_term[k].Rel.Num, k.Length, k});
+            var tmp = m_term.Keys.SortBy((k) => new IComparable[]{-m_term[k].Occur.Count, m_term[k].Rel.Num, k.Length, k});
             tmp.Each((k) =>
             {
                 result.Append(string.Format("{0}\t{1}\t{2}\t{3}\n",
@@ -1236,9 +1236,45 @@ public static class SixamoExtends
         return e.Select(func);
     }
 
-    public static IOrderedEnumerable<TSource> SortBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+    private class SortByKey : IComparable
     {
-        return source.OrderBy(keySelector);
+        private IComparable[] m_data;
+
+        internal SortByKey(IComparable[] data)
+        {
+            m_data = data;
+        }
+
+        #region IComparable メンバ
+
+        public int CompareTo(object obj)
+        {
+            SortByKey other = obj as SortByKey;
+
+            int i = 0;
+            while (true)
+            {
+                if (m_data.Length == i || other.m_data.Length == i)
+                    return m_data.Length.CompareTo(other.m_data.Length);
+
+                if (m_data[i] != other.m_data[i])
+                    return m_data[i].CompareTo(other.m_data[i]);
+
+                i++;
+            }
+        }
+
+        #endregion
+    }
+
+    public static IOrderedEnumerable<TSource> SortBy<TSource>(this IEnumerable<TSource> source, Func<TSource, IComparable[]> func)
+    {
+        return source.OrderBy((i) => new SortByKey(func(i)));
+    }
+
+    public static IOrderedEnumerable<TSource> SortBy<TSource>(this IEnumerable<TSource> source, Func<TSource, IComparable> func)
+    {
+        return source.SortBy((i) => new IComparable[]{func(i)});
     }
 
     public static IEnumerable<T> Flatten<T>(this IEnumerable<IEnumerable<T>> e)
