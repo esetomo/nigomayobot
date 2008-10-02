@@ -24,6 +24,9 @@ namespace NigoMayo
         public void Run()
         {
             SixamoCS.DEBUG = true;
+	    // SixamoCS.Core sixamo = SixamoCS.Create("data");
+	    // Console.WriteLine(sixamo.Talk());
+
             m_client.Login(Properties.Settings.Default.FirstName,
                            Properties.Settings.Default.LastName,
                            Properties.Settings.Default.Password);

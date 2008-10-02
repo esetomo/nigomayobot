@@ -169,20 +169,20 @@ public class SixamoCS
             });
 
             var uniq = new Hash<MarkovKey, string>(() => "");
-            var backup = new Hash<MarkovKey, IEnumerable<string>>(() => new List<string>());
+            var backup = new Hash<MarkovKey, string[]>(() => null);
 
-            table.Each((i) =>
+            foreach(var i in table)
             {
                 if (i.Value.Count == 1)
                     uniq[i.Key] = i.Value[0];
                 else
                     backup[i.Key] = table[i.Key].ToArray();
-            });
+            }
 
             var key2 = new MarkovKey(ary.Take(MARKOV_KEY_SIZE));
             var result = new StringBuilder(key2.ToString());
 
-            (10000).Times(() =>
+	    for(int i=0; i<10000; i++)
             {
                 string str;
 
@@ -203,7 +203,7 @@ public class SixamoCS
 
                 result.Append(str);
                 key2.Push(str);
-            });
+            }
 
             return result.ToString();
         }
@@ -379,7 +379,8 @@ public class SixamoCS
                 });
             }
 
-            (10).Times(() => lines.Add(Rand(m_dic.Text.Count)));
+            for(int i=0; i<10; i++)
+            	    lines.Add(Rand(m_dic.Text.Count));
             lines = lines.Uniq();
 
             var source = lines.Collect((k) => m_dic.Text.Skip(k).Take(5))
@@ -1297,11 +1298,6 @@ public static class SixamoExtends
         return e.Distinct().ToList();
     }
 
-    public static void Times(this int repert, Action action)
-    {
-        repert.Times((i) => action());
-    }
-
     public static void Times(this int repert, Action<int> action)
     {
         for (int i = 0; i < repert; i++)
@@ -1311,17 +1307,5 @@ public static class SixamoExtends
     public static string Join(this IEnumerable<string> list, string sep)
     {
         return string.Join(sep, list.ToArray());
-    }
-
-    public static void Upto(this int start, int end, Action<int> action)
-    {
-        for (int i = start; i <= end; i++)
-            action(i);
-    }
-
-    public static void Downto(this int start, int end, Action<int> action)
-    {
-        for (int i = start; i >= end; i--)
-            action(i);
     }
 }
