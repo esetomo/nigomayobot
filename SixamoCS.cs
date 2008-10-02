@@ -1,4 +1,4 @@
-﻿// ライセンスはRuby'sとのことらしいです。 http://www.ruby-lang.org/ja/LICENSE.txt
+// ライセンスはRuby'sとのことらしいです。 http://www.ruby-lang.org/ja/LICENSE.txt
 // 変更前ソース入手先 http://yowaken.dip.jp/sixamo/
 // 変更点:
 //   * C#にしました。
@@ -723,19 +723,19 @@ public class SixamoCS
 
             var size = words.Count();
 
-            (size - width).Times((idx1) =>
+            for(int idx1 = 0; idx1 < size - width; idx1++)
             {
                 var word1 = words.ElementAt(idx1);
 
-                (idx1 + 1).Upto(idx1 + width, (idx2) =>
+                for(int idx2 = idx1 + 1; idx2 <= idx1 + width; idx2++)
                 {
                     if (word1 == words.ElementAt(idx2))
                         m_term[word1].Rel.Num += 1;
                     m_term[word1].Rel.Sum += 1;
-                });
-            });
+                }
+            }
 
-            (width + 1).Times((idx1) =>
+            for(int idx1 = 0; idx1 < width + 1; idx1++)
             {
                 string word1;
                 if (idx1 == 0)
@@ -745,14 +745,14 @@ public class SixamoCS
 
                 if (word1 != null && word1 != "")
                 {
-                    (idx1 - 1).Downto(1, (idx2) =>
+                    for(int idx2 = idx1 - 1; idx2 >= 1; idx2--)
                     {
                         if (word1 == words.ElementAt(words.Count() - idx2))
                             m_term[word1].Rel.Num += 1;
                         m_term[word1].Rel.Sum += 1;
-                    });
+                    }
                 }
-            });
+            }
         }
 
         public double Weight(string word)
@@ -795,7 +795,12 @@ public class SixamoCS
             m_trie.Delete(str);
 
             var tmp = SplitIntoTerms(str);
-            tmp.Each((w) => m_term[w].Occur = m_term[w].Occur.Concat(occur).Uniq().Sort<int>());
+            tmp.Each((w) => 
+            {
+                var item = m_term[w].Occur.Concat(occur).Uniq();
+                item.Sort();
+                m_term[w].Occur = item;
+            });
             if (tmp.Count() > 0)
                 WeightUpdate(tmp);
         }
@@ -1318,10 +1323,5 @@ public static class SixamoExtends
     {
         for (int i = start; i >= end; i--)
             action(i);
-    }
-
-    public static List<T> Sort<T>(this IEnumerable<T> e)
-    {
-        return e.OrderBy((i) => i).ToList();
     }
 }
