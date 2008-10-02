@@ -8,7 +8,8 @@
     <mkdir dir="bin" unless="${directory::exists('bin')}" />
     <csc target="exe" 
 	 output="bin/NigoMayo.exe"
-	 langversion="linq">
+	 langversion="linq"
+	 debug="true">
       <sources>
 	<include name="**/*.cs" />
       </sources>

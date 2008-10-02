@@ -304,8 +304,8 @@ public class SixamoCS
                 keywords = new Hash<string, double>(() => 0.0);
                 latest_text.Each((str2) =>
                 {
-                    keywords.Each((i) => keywords[i.Key] *= 0.5);
-                    m_dic.SplitIntoKeywords(str2).Each((i) => keywords[i.Key] += i.Value);
+                    keywords.Each((i) => { keywords[i.Key] *= 0.5; });
+                    m_dic.SplitIntoKeywords(str2).Each((i) => {keywords[i.Key] += i.Value; });
                 });
             }
 
@@ -369,7 +369,7 @@ public class SixamoCS
                 double sum = keywords.Values.Sum();
                 if (sum > 0.0)
                 {
-                    keywords.Each((i) => keywords[i.Key] = i.Value / sum);
+                    keywords.Each((i) => {keywords[i.Key] = i.Value / sum;});
                 }
 
                 keywords.Keys.Each((kw) =>
@@ -668,7 +668,7 @@ public class SixamoCS
             var result = new Hash<string, double>(() => 0.0);
             var terms = SplitIntoTerms(str);
 
-            terms.Each((w) => result[w] += Weight(w));
+            terms.Each((w) => {result[w] += Weight(w);});
 
             return result;
         }

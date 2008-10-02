@@ -87,6 +87,7 @@ namespace NigoMayo
         {
             var param = Network.DefaultLoginParams(firstName, lastName, password, "", "");
             // param.Start = "home";
+	    // param.URI = "http://localhost:9000/";
             Network.BeginLogin(param);
             // LogLoader();
         }
