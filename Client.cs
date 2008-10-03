@@ -25,7 +25,7 @@ namespace NigoMayo
             m_timer = new Timer(10 * 1000);
             m_timer.Elapsed += new ElapsedEventHandler(m_timer_Elapsed);
 
-            Friends.OnFriendFound += new FriendsManager.FriendFoundEvent(Friends_OnFriendFound);
+            // Friends.OnFriendFound += new FriendsManager.FriendFoundEvent(Friends_OnFriendFound);
             Groups.OnGroupTitles += new GroupManager.GroupTitlesCallback(Groups_OnGroupTitles);
             Network.OnLogin += new NetworkManager.LoginCallback(Network_OnLogin);
             Objects.OnNewAvatar += new ObjectManager.NewAvatarCallback(Objects_OnNewAvatar);
@@ -147,11 +147,11 @@ namespace NigoMayo
             {
                 case ChatType.Normal:
                 case ChatType.Shout:
+                    Console.WriteLine("{0}>{1}", fromName, message);
                     if (sourceType == ChatSourceType.Agent)
                     {
                         if (id == Self.AgentID)
                             break;
-
                         m_sixamo.Memorize(message);
 
                         if (SixamoCS.Rand() > 1.0 / Math.Pow(Network.CurrentSim.ObjectsAvatars.Count - 1, 1.5))

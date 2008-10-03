@@ -1,4 +1,4 @@
-// ライセンスはRuby'sとのことらしいです。 http://www.ruby-lang.org/ja/LICENSE.txt
+﻿// ライセンスはRuby'sとのことらしいです。 http://www.ruby-lang.org/ja/LICENSE.txt
 // 変更前ソース入手先 http://yowaken.dip.jp/sixamo/
 // 変更点:
 //   * C#にしました。
@@ -21,7 +21,7 @@ public class SixamoCS
         return new Core(dirname);
     }
 
-    public static Dictionary InitDictionary(string dirname)
+    internal static Dictionary InitDictionary(string dirname)
     {
         Dictionary dic = new Dictionary(dirname);
         dic.LoadText();
@@ -29,7 +29,7 @@ public class SixamoCS
         return dic;
     }
 
-    public static class Util
+    internal static class Util
     {
         public static string RouletteSelect(Hash<string, double> h)
         {
@@ -272,6 +272,7 @@ public class SixamoCS
     public class Core
     {
         private Dictionary m_dic;
+        private readonly object m_lock = new object();
 
         public Core(string dirname)
         {
@@ -342,16 +343,22 @@ public class SixamoCS
 
         public void Memorize(string lines)
         {
-            m_dic.StoreText(lines);
-            if (m_dic.LearnFromText())
-                m_dic.SaveDictionary();
+            lock (m_lock)
+            {
+                m_dic.StoreText(lines);
+                if (m_dic.LearnFromText())
+                    m_dic.SaveDictionary();
+            }
         }
 
         public void Memorize(IEnumerable<string> lines)
         {
-            m_dic.StoreText(lines);
-            if (m_dic.LearnFromText(true))
-                m_dic.SaveDictionary();
+            lock (m_lock)
+            {
+                m_dic.StoreText(lines);
+                if (m_dic.LearnFromText(true))
+                    m_dic.SaveDictionary();
+            }
         }
 
         public string MessageMarkov(Hash<string, double> keywords)
@@ -392,7 +399,7 @@ public class SixamoCS
         }
     }
 
-    public class Dictionary
+    internal class Dictionary
     {
         public const string TEXT_FILENAME = "sixamo.txt";
         public const string DIC_FILENAME = "sixamo.dic";
@@ -607,7 +614,7 @@ public class SixamoCS
             StoreText(new string[] { line });
         }
 
-        public void StoreText(IEnumerable<string> lines)
+        internal void StoreText(IEnumerable<string> lines)
         {
             var ary = new List<string>();
             foreach (var line in lines)
@@ -810,7 +817,7 @@ public class SixamoCS
         public Trie Trie { get { return m_trie; } }
     }
 
-    public class Freq
+    internal class Freq
     {
         private string m_buf;
 
@@ -924,7 +931,7 @@ public class SixamoCS
         }
     }
 
-    public class Trie
+    internal class Trie
     {
         class Node : Hash<string, Node>
         {
