@@ -155,18 +155,20 @@ public class SixamoCS
             if (src.Count() == 0)
                 return "";
 
-            var ary = trie.SplitIntoTerms(string.Join("\n", src.ToArray()) + "\n", int.MaxValue);
+            List<string> ary = trie.SplitIntoTerms(string.Join("\n", src.ToArray()) + "\n", int.MaxValue);
 
             var size = ary.Count();
-            ary = ary.Concat(ary.Take(MARKOV_KEY_SIZE + 1));
+            for (int i = 0; i < MARKOV_KEY_SIZE + 1; i++)
+                ary.Add(ary[i]);
 
             var table = new Hash<MarkovKey, List<string>>(() => new List<string>());
-            size.Times((idx) => {
-                var key = new MarkovKey(ary.Skip(idx).Take(MARKOV_KEY_SIZE));
+            for (int idx = 0; idx < size; idx++)
+            {
+                var key = new MarkovKey(ary.GetRange(idx, MARKOV_KEY_SIZE));
                 if (!table.ContainsKey(key))
                     table[key] = new List<string>();
-                table[key].Add(ary.ElementAt(idx + MARKOV_KEY_SIZE));
-            });
+                table[key].Add(ary[idx + MARKOV_KEY_SIZE]);
+            }
 
             var uniq = new Hash<MarkovKey, string>(() => "");
             var backup = new Hash<MarkovKey, string[]>(() => null);
@@ -840,7 +842,7 @@ public class SixamoCS
 
             var terms2 = new List<KeyValuePair<string, int>>();
 
-            (terms.Count() - 1).Times((idx) =>
+            for(int idx=0; idx < terms.Count() - 1; idx++)
             {
                 if (terms[idx].Key.Length >= terms[idx + 1].Key.Length ||
                     terms[idx].Key != terms[idx + 1].Key.Substring(0, terms[idx].Key.Length))
@@ -851,7 +853,7 @@ public class SixamoCS
                 {
                     terms2.Add(terms[idx]);
                 }
-            });
+            }
             if (terms.Length > 0)
                 terms2.Add(terms.Last());
 
@@ -1006,12 +1008,12 @@ public class SixamoCS
             });
         }
 
-        public IEnumerable<string> SplitIntoTerms(string str)
+        public List<string> SplitIntoTerms(string str)
         {
             return SplitIntoTerms(str, null);
         }
 
-        public IEnumerable<string> SplitIntoTerms(string str, Nullable<int> num)
+        public List<string> SplitIntoTerms(string str, Nullable<int> num)
         {
             var result = new List<string>();
 
@@ -1303,12 +1305,6 @@ public static class SixamoExtends
     public static List<T> Uniq<T>(this IEnumerable<T> e)
     {
         return e.Distinct().ToList();
-    }
-
-    public static void Times(this int repert, Action<int> action)
-    {
-        for (int i = 0; i < repert; i++)
-            action(i);
     }
 
     public static string Join(this IEnumerable<string> list, string sep)
