@@ -11,6 +11,8 @@ namespace NigoMayo
 
         public static void Main(string[] args)
         {
+            Console.WriteLine("LocalApplicationData:{0}", Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+
             if (args.Length == 3)
             {
                 Properties.Settings.Default.FirstName = args[0];

@@ -36,7 +36,10 @@ public class SixamoCS
             if (h.IsEmpty())
                 return null;
 
-            var sum = h.Values.Sum();
+            var sum = 0.0;
+            foreach(var v in h.Values)
+                sum += v;
+
             if (sum == 0.0)
                 return RandomSelect(h.Keys);
 
@@ -59,12 +62,12 @@ public class SixamoCS
         {
             Hash<string, List<string>> paren_h = new Hash<string, List<string>>(() => null);
 
-            (new string[] { "「」", "『』", "()", "（）" }).Each((paren) =>
+            foreach(var paren in new string[] { "「」", "『』", "()", "（）" })
             {
                 paren.Scan(".", (ch) => {
                     paren_h[ch] = paren.Scan(".");
                 });
-            });
+            }
 
             var re = @"[「」『』()（）]";
             var ary = str.Scan(re);
@@ -247,21 +250,26 @@ public class SixamoCS
 
             var result_hash = new Hash<string, double>(() => 0.0);
             var trie = new Trie(keywords.Keys);
-            result_ary.Each((str) =>
+            foreach(var str in result_ary)
             {
                 var terms = trie.SplitIntoTerms(str).Distinct();
-                result_hash[str] = terms.Select((kw) => keywords[kw]).Sum();
-            });
+                result_hash[str] = 0.0;
+                foreach (var kw in terms)
+                    result_hash[str] += keywords[kw]; 
+            }
 
             if (DEBUG)
             {
-                var sum = result_hash.Values.Sum();
+                var sum = 0.0;
+                foreach (var v in result_hash.Values)
+                    sum += v;
+
                 var tmp2 = from item in result_hash orderby -item.Value, item.Key select item;
                 Console.WriteLine("-(候補数: {0})----", result_hash.Count);
-                tmp2.Take(10).Each((i) =>
+                foreach(var i in tmp2.Take(10))
                 {
                     Console.WriteLine("{0:###.##}: {1}", i.Value / sum * 100, i.Key);
-                });
+                }
             }
 
             var result2 = Util.RouletteSelect(result_hash);
@@ -305,14 +313,16 @@ public class SixamoCS
                 IEnumerable<string> latest_text;
                 latest_text = text.Count < 10 ? text : text.Skip(text.Count - 10);
                 keywords = new Hash<string, double>(() => 0.0);
-                latest_text.Each((str2) =>
+                foreach(var str2 in latest_text)
                 {
-                    keywords.Each((i) => { keywords[i.Key] *= 0.5; });
-                    m_dic.SplitIntoKeywords(str2).Each((i) => {keywords[i.Key] += i.Value; });
-                });
+                    foreach(var i in keywords)
+                        keywords[i.Key] *= 0.5;
+                    foreach(var i in m_dic.SplitIntoKeywords(str2))
+                        keywords[i.Key] += i.Value;
+                }
             }
 
-            weight.Keys.Each((kw) =>
+            foreach(var kw in weight.Keys)
             {
                 if (keywords.ContainsKey(kw))
                 {
@@ -321,21 +331,24 @@ public class SixamoCS
                     else
                         keywords[kw] *= weight[kw];
                 }
-            });
+            }
 
             string msg = MessageMarkov(keywords);
 
             if (DEBUG)
             {
-                double sum = keywords.Values.Sum();
+                double sum = 0.0;
+                foreach (var v in keywords.Values)
+                    sum += v;
+
                 var tmp = from keyword in keywords
                           orderby -keyword.Value, keyword.Key
                           select keyword;
                 Console.WriteLine("-(term)----");
-                tmp.Each((i) =>
+                foreach(var i in tmp)
                 {
                     Console.Write("{0}({1:###.###}%)", i.Key, i.Value / sum * 100);
-                });
+                }
                 Console.WriteLine();
                 Console.WriteLine("----------");
             }
@@ -370,22 +383,25 @@ public class SixamoCS
             {
                 if (keywords.Count > 10)
                 {
-                    keywords.SortBy((i) => -i.Value).Skip(keywords.Count - 10).Each((i) =>
-                    {
+                    foreach(var i in keywords.SortBy((i) => -i.Value).Skip(keywords.Count - 10))
                         keywords.Remove(i.Key);
-                    });
                 }
-                double sum = keywords.Values.Sum();
+                double sum = 0.0;
+                foreach (var v in keywords.Values)
+                    sum += v;
+
                 if (sum > 0.0)
                 {
-                    keywords.Each((i) => {keywords[i.Key] = i.Value / sum;});
+                    foreach(var i in keywords)
+                        keywords[i.Key] = i.Value / sum;
                 }
 
-                keywords.Keys.Each((kw) =>
+                foreach(var kw in keywords.Keys)
                 {
                     var ary = m_dic.Lines(kw).SortBy((_) => Rand());
-                    ary.Take(10).Each((idx) => lines.Add(idx));
-                });
+                    foreach(var idx in ary.Take(10))
+                        lines.Add(idx);
+                }
             }
 
             for(int i=0; i<10; i++)
@@ -597,7 +613,7 @@ public class SixamoCS
 
                 if (buf_prev.Count > 0)
                 {
-                    Learn(buf_prev.Concat(buf), m_line_num);
+                    Learn(buf_prev.Concat(buf).ToList(), m_line_num);
                     modified = true;
 
                     m_line_num += buf_prev.Count;
@@ -634,12 +650,12 @@ public class SixamoCS
             }
         }
 
-        public void Learn(IEnumerable<string> lines)
+        public void Learn(List<string> lines)
         {
             Learn(lines, null);
         }
 
-        public void Learn(IEnumerable<string> lines, int? idx)
+        public void Learn(List<string> lines, int? idx)
         {
             var new_terms = Freq.ExtractTerms(lines, 30);
             foreach (var term in new_terms)
@@ -648,28 +664,29 @@ public class SixamoCS
             if (idx.HasValue)
             {
                 IEnumerable<string> words_all = new List<string>();
-                lines.EachWithIndex((line, i) =>
+                for(int i = 0; i<lines.Count; i++)
                 {
+                    var line = lines[i];
                     var num = idx.Value + i;
                     var words = SplitIntoTerms(line);
                     words_all = words_all.Concat(words);
-                    words.Each((term) =>
+                    foreach(var term in words)
                     {
                         if (m_term[term].Occur.Count == 0 || num > m_term[term].Occur.Last())
                             m_term[term].Occur.Add(num);
-                    });
-                });
+                    }
+                }
 
                 WeightUpdate(words_all);
 
-                Terms().Each((term) =>
+                foreach(var term in Terms())
                 {
                     var occur = m_term[term].Occur;
                     var size = occur.Count;
 
                     if (size < 4 && size > 0 && occur.Last() + size * 150 < idx)
                         DelTerm(term);
-                });
+                }
             }
         }
 
@@ -678,7 +695,8 @@ public class SixamoCS
             var result = new Hash<string, double>(() => 0.0);
             var terms = SplitIntoTerms(str);
 
-            terms.Each((w) => {result[w] += Weight(w);});
+            foreach(var w in terms)
+                result[w] += Weight(w);
 
             return result;
         }
@@ -703,21 +721,21 @@ public class SixamoCS
 
             m_term.DeleteIf((i) => i.Value.Occur.Count == 0);
 
-            m_term.Each((i) =>
+            foreach(var i in m_term)
             {
                 if (i.Value.Occur.Count > 100)
                     m_term[i.Key].Occur = i.Value.Occur.Skip(i.Value.Occur.Count - 100).ToList();
-            });
+            }
 
             var tmp = m_term.Keys.SortBy((k) => new IComparable[]{-m_term[k].Occur.Count, m_term[k].Rel.Num, k.Length, k});
-            tmp.Each((k) =>
+            foreach(var k in tmp)
             {
                 result.Append(string.Format("{0}\t{1}\t{2}\t{3}\n",
                                             k,
                                             m_term[k].Rel.Num,
                                             m_term[k].Rel.Sum,
                                             m_term[k].Occur.Collect((i) => i.ToString()).Join(",")));
-            });
+            }
             return result.ToString();
         }
 
@@ -725,11 +743,11 @@ public class SixamoCS
         {
             var width = 20;
 
-            words.Each((term) =>
+            foreach(var term in words)
             {
                 if (!m_term.ContainsKey(term))
                     m_term[term] = new Term();
-            });
+            }
 
             var size = words.Count();
 
@@ -805,12 +823,12 @@ public class SixamoCS
             m_trie.Delete(str);
 
             var tmp = SplitIntoTerms(str);
-            tmp.Each((w) => 
+            foreach(var w in tmp)
             {
                 var item = m_term[w].Occur.Concat(occur).Uniq();
                 item.Sort();
                 m_term[w].Occur = item;
-            });
+            }
             if (tmp.Count() > 0)
                 WeightUpdate(tmp);
         }
@@ -1206,13 +1224,7 @@ public static class SixamoExtends
     {
         return new string(Enumerable.Reverse(str).ToArray());
     }
-
-    public static void Each<T>(this IEnumerable<T> enumerable, Action<T> action)
-    {
-        foreach (var item in enumerable)
-            action(item);
-    }
-
+   
     public static void EachWithIndex<T>(this IEnumerable<T> e, Action<T, int> action)
     {
         int i = 0;
