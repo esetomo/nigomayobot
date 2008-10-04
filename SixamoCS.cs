@@ -1,4 +1,4 @@
-﻿// ライセンスはRuby'sとのことらしいです。 http://www.ruby-lang.org/ja/LICENSE.txt
+// ライセンスはRuby'sとのことらしいです。 http://www.ruby-lang.org/ja/LICENSE.txt
 // 変更前ソース入手先 http://yowaken.dip.jp/sixamo/
 // 変更点:
 //   * C#にしました。
@@ -160,7 +160,7 @@ public class SixamoCS
 
             List<string> ary = trie.SplitIntoTerms(string.Join("\n", src.ToArray()) + "\n", int.MaxValue);
 
-            var size = ary.Count();
+            var size = ary.Count;
             for (int i = 0; i < MARKOV_KEY_SIZE + 1; i++)
                 ary.Add(ary[i]);
 
